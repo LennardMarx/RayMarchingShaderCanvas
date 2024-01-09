@@ -19,11 +19,17 @@ public:
   void MoveUp(float speed);
   void MoveDown(float speed);
 
+  glm::vec3 GetCamPos();
+  glm::vec3 GetCamRot();
+  glm::vec2 GetMouseDelta();
+  // glm::vec2 GetRotAngle(int mouseX, int mouseY);
+
 private:
   glm::vec3 mEye;
   glm::vec3 mViewDirection;
   glm::vec3 mUpVector;
 
+  glm::vec2 mouseDelta;
   glm::vec2 mOldMousePosition;
 };
 

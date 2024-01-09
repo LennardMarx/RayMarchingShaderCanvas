@@ -1,11 +1,19 @@
 #version 410 core
 
-// in vec3 v_vertexColors;
-// uniform float u_offset; // uniform - global var on GPU
+uniform int u_Time;               // Time in ms.
+float gTime = u_Time/1000000.0f;  // Time in s.
 
-uniform int u_Time;
-// uniform float u_AspectRatio;
 uniform float u_Resolution[2];
+vec2 gResolution = vec2(u_Resolution[0], u_Resolution[1]);
+
+uniform float u_CamPos[3];
+vec3 gCamPos = vec3(u_CamPos[0], u_CamPos[1], u_CamPos[2]);
+
+// uniform float u_CamRot[3];
+// vec3 gCamRot = vec3(u_CamRot[0], u_CamRot[1], u_CamRot[2]);
+uniform float u_MouseDelta[2];
+vec2 gMouseDelta = vec2(u_MouseDelta[0], u_MouseDelta[1]);
+
 
 in vec3 v_vertexPositions;
 
@@ -71,22 +79,39 @@ float sdCutHollowSphere( vec3 p, float r, float h, float t )
 }
 
 float map(vec3 p){
-  float time = u_Time/1000000.0f;
-  vec3 pos = vec3(sin(time)*3.0f, 0,0);
+  vec3 pos = vec3(sin(gTime)*3.0f, 0,0);
   float sphere = sdSphere(p-pos, 1.0f);
-  float box = sdBox(p, vec3(0.75f));
-  return smin(sphere, box, 10.0f);
+
+  vec3 pBox = p;
+
+  pBox.xy *= rot2D(gTime);
+  
+  float box = sdBox(pBox, vec3(0.75f));
+
+  float ground = p.y + 0.75;
+  
+  return smin(ground, smin(sphere, box, 10.0f), 10.0f);
 }
 
 void main()
 {
   // Correcting for the ascpect ratio;
-  vec2 resolution = vec2(u_Resolution[0], u_Resolution[1]);
-  vec2 uv = (v_vertexPositions.xy * 2.0f * resolution) / resolution.y;
+  vec2 uv = (v_vertexPositions.xy * 2.0f * gResolution) / gResolution.y;
 
   vec3 ro = vec3(0, 0, -3);         // ray origin
   vec3 rd = normalize(vec3(uv*0.5f, 1)); // ray direction, adjusting FOV with miltiplier
   vec3 col = vec3(0.0f);            // pixel color
+
+  // gCamPos.xz *= rot2D(gMouseDelta.x)
+
+  
+  ro.xz += gCamPos.xz;
+  // ro.x += sin(gMouseDelta.x);
+  // ro.z += cos(gMouseDelta.x);
+  ro.y += gCamPos.y;
+
+  rd.yz *= rot2D(gMouseDelta.y);
+  rd.xz *= rot2D(-gMouseDelta.x);
 
   float t = 0.0f;                   // travelled distance of ray
 

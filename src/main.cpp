@@ -43,6 +43,15 @@ float g_u_offset_x = 0.0f;
 float g_uRotate = 0.0f;
 float g_uScale = 1.0f;
 
+float u_xPos = 0.0f;
+float u_yPos = 0.0f;
+float u_zPos = 0.0f;
+
+// static int mouseX = gScreenWidth / 2;
+// static int mouseY = gScreenHeight / 2;
+static int mouseX = 0;
+static int mouseY = 0;
+
 Camera gCamera;
 
 // Program Object for our shaders
@@ -280,8 +289,8 @@ void InitializeProgram() {
 }
 
 void Input() {
-  static int mouseX = gScreenWidth / 2;
-  static int mouseY = gScreenHeight / 2;
+  // static int mouseX = gScreenWidth / 2;
+  // static int mouseY = gScreenHeight / 2;
   //
   SDL_Event e;
   while (SDL_PollEvent(&e) != 0) {
@@ -291,29 +300,47 @@ void Input() {
     } else if (e.type == SDL_MOUSEMOTION) {
       mouseX += e.motion.xrel;
       mouseY += e.motion.yrel;
+
+      std::cout << "Mouse pos: " << glm::radians((float)mouseX) << ", "
+                << glm::radians((float)mouseY) << std::endl;
       // gCamera.MouseLook(mouseX, mouseY);
     }
   }
+  std::cout << "Eye pos: " << u_zPos << ", " << u_xPos << std::endl;
 
   float speed = 0.1f;
   const Uint8 *state = SDL_GetKeyboardState(NULL);
   if (state[SDL_SCANCODE_W]) {
     // gCamera.MoveForward(speed);
+    // u_zPos += speed;
+    u_zPos += cosf(-glm::radians((float)mouseX)) * speed;
+    u_xPos -= sinf(-glm::radians((float)mouseX)) * speed;
   }
   if (state[SDL_SCANCODE_S]) {
     // gCamera.MoveBackward(speed);
+    // u_zPos -= speed;
+    u_zPos -= cosf(-glm::radians((float)mouseX)) * speed;
+    u_xPos += sinf(-glm::radians((float)mouseX)) * speed;
   }
   if (state[SDL_SCANCODE_D]) {
     // gCamera.MoveRight(speed);
+    // u_xPos += speed;
+    u_zPos += sinf(-glm::radians((float)mouseX)) * speed;
+    u_xPos += cosf(-glm::radians((float)mouseX)) * speed;
   }
   if (state[SDL_SCANCODE_A]) {
     // gCamera.MoveLeft(speed);
+    // u_xPos -= speed;
+    u_zPos -= sinf(-glm::radians((float)mouseX)) * speed;
+    u_xPos -= cosf(-glm::radians((float)mouseX)) * speed;
   }
   if (state[SDL_SCANCODE_SPACE]) {
     // gCamera.MoveUp(speed);
+    u_yPos += speed;
   }
   if (state[SDL_SCANCODE_LSHIFT]) {
     // gCamera.MoveDown(speed);
+    u_yPos -= speed;
   }
 }
 
@@ -381,19 +408,6 @@ void PreDraw() {
     exit(EXIT_FAILURE);
   }
 
-  // GLfloat aspectRatio = (float)gScreenWidth / (float)gScreenHeight;
-  // // GLuint aspectRatio = gScreenWidth;
-  // // Pass aspect ratio to shader.
-  // GLint u_AspectRatioLocation =
-  //     glGetUniformLocation(gGraphicsPipelineShaderProgram, "u_AspectRatio");
-  // if (u_AspectRatioLocation >= 0) {
-  //   // std::cout << "location of u_offset: " << location << std::endl;
-  //   // glUniformMatrix4fv(u_TimeLocation, 1, GL_FALSE, &model[0][0]);
-  //   glUniform1f(u_AspectRatioLocation, aspectRatio);
-  // } else {
-  //   std::cout << "Could not find u_AspectRatioLocation in memory." <<
-  //   std::endl; exit(EXIT_FAILURE);
-  // }
   GLfloat resolution[] = {(float)gScreenWidth, (float)gScreenHeight};
   // glm::vec2 resolution = {(float)gScreenWidth, (float)gScreenHeight};
   // GLuint aspectRatio = gScreenWidth;
@@ -408,6 +422,58 @@ void PreDraw() {
     std::cout << "Could not find u_ResolutionLocation in memory." << std::endl;
     exit(EXIT_FAILURE);
   }
+
+  // GLfloat camPos[] = {u_xPos, u_yPos, u_zPos};
+  // glm::vec3 camPos = gCamera.GetCamPos();
+  glm::vec3 camPos = glm::vec3(u_xPos, u_yPos, u_zPos);
+  // glm::vec2 resolution = {(float)gScreenWidth, (float)gScreenHeight};
+  // GLuint aspectRatio = gScreenWidth;
+  // Pass aspect ratio to shader.
+  GLint u_CamPosLocation =
+      glGetUniformLocation(gGraphicsPipelineShaderProgram, "u_CamPos");
+  if (u_CamPosLocation >= 0) {
+    // std::cout << "location of u_offset: " << location << std::endl;
+    // glUniformMatrix4fv(u_TimeLocation, 1, GL_FALSE, &model[0][0]);
+    glUniform1fv(u_CamPosLocation, 3, &camPos[0]);
+  } else {
+    std::cout << "Could not find u_CamPosLocation in memory." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // glm::vec2 mouseDelta = gCamera.GetMouseDelta();
+  // glm::vec2 mouseDelta =
+  //     glm::vec2((float)mouseX / 100.0f, (float)mouseY / 100.0f);
+  // currentMouseX = mouseX;
+  glm::vec2 mouseDelta =
+      glm::vec2(glm::radians((float)mouseX), glm::radians((float)mouseY));
+  // glm::vec2 resolution = {(float)gScreenWidth, (float)gScreenHeight};
+  // GLuint aspectRatio = gScreenWidth;
+  // Pass aspect ratio to shader.
+  GLint u_MouseDeltaLocation =
+      glGetUniformLocation(gGraphicsPipelineShaderProgram, "u_MouseDelta");
+  if (u_MouseDeltaLocation >= 0) {
+    // std::cout << "location of u_offset: " << location << std::endl;
+    // glUniformMatrix4fv(u_TimeLocation, 1, GL_FALSE, &model[0][0]);
+    glUniform1fv(u_MouseDeltaLocation, 3, &mouseDelta[0]);
+  } else {
+    std::cout << "Could not find u_MouseDeltaLocation in memory." << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  // std::cout << "Mouse Delta: " << gCamera.GetMouseDelta().x << std::endl;
+  // glm::vec3 camRot = gCamera.GetCamRot();
+  // // glm::vec2 resolution = {(float)gScreenWidth, (float)gScreenHeight};
+  // // GLuint aspectRatio = gScreenWidth;
+  // // Pass aspect ratio to shader.
+  // GLint u_CamRotLocation =
+  //     glGetUniformLocation(gGraphicsPipelineShaderProgram, "u_CamRot");
+  // if (u_CamRotLocation >= 0) {
+  //   // std::cout << "location of u_offset: " << location << std::endl;
+  //   // glUniformMatrix4fv(u_TimeLocation, 1, GL_FALSE, &model[0][0]);
+  //   glUniform1fv(u_CamRotLocation, 3, &camRot[0]);
+  // } else {
+  //   std::cout << "Could not find u_CamRotLocation in memory." << std::endl;
+  //   exit(EXIT_FAILURE);
+  // }
 
   passTime();
 }

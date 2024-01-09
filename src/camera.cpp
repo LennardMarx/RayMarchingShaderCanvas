@@ -7,8 +7,18 @@ Camera::Camera() {
 }
 
 glm::mat4 Camera::GetViewMatrix() const {
-  return glm::lookAt(mEye, mEye + mViewDirection, mUpVector);
+  // return glm::lookAt(mEye, mEye + mViewDirection, mUpVector);
+  return glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f),
+                     glm::vec3(0.0f, 1.0f, 0.0f));
 }
+
+glm::vec3 Camera::GetCamPos() { return mEye; }
+glm::vec3 Camera::GetCamRot() { return mViewDirection; }
+glm::vec2 Camera::GetMouseDelta() { return mouseDelta; }
+// glm::vec2 Camera::GetRotAngle(int mouseX, int mouseY) {
+//
+//   return glm::vec2(glm::radians(mouseX), mouseY);
+// }
 
 void Camera::MouseLook(int mouseX, int mouseY) {
   // std::cout << "Mouse: " << mouseX << ", " << mouseX << std::endl;
@@ -21,7 +31,8 @@ void Camera::MouseLook(int mouseX, int mouseY) {
     firstLook = false;
   }
 
-  glm::vec2 mouseDelta = mOldMousePosition - currentMouse;
+  // glm::vec2 mouseDelta = mOldMousePosition - currentMouse;
+  mouseDelta = mOldMousePosition - currentMouse;
 
   mViewDirection =
       glm::rotate(mViewDirection, glm::radians(mouseDelta.x), mUpVector);
@@ -33,8 +44,8 @@ void Camera::MouseLook(int mouseX, int mouseY) {
   mOldMousePosition = currentMouse;
 }
 
-void Camera::MoveForward(float speed) { mEye += (mViewDirection * speed); }
-void Camera::MoveBackward(float speed) { mEye -= (mViewDirection * speed); }
+void Camera::MoveForward(float speed) { mEye -= (mViewDirection * speed); }
+void Camera::MoveBackward(float speed) { mEye += (mViewDirection * speed); }
 void Camera::MoveRight(float speed) {
   glm::vec3 rightVector = glm::cross(mViewDirection, mUpVector);
   mEye += rightVector * speed;
