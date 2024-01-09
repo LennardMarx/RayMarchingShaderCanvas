@@ -301,12 +301,12 @@ void Input() {
       mouseX += e.motion.xrel;
       mouseY += e.motion.yrel;
 
-      std::cout << "Mouse pos: " << glm::radians((float)mouseX) << ", "
-                << glm::radians((float)mouseY) << std::endl;
+      // std::cout << "Mouse pos: " << glm::radians((float)mouseX) << ", "
+      //           << glm::radians((float)mouseY) << std::endl;
       // gCamera.MouseLook(mouseX, mouseY);
     }
   }
-  std::cout << "Eye pos: " << u_zPos << ", " << u_xPos << std::endl;
+  // std::cout << "Eye pos: " << u_zPos << ", " << u_xPos << std::endl;
 
   float speed = 0.1f;
   const Uint8 *state = SDL_GetKeyboardState(NULL);

@@ -84,13 +84,15 @@ float map(vec3 p){
 
   vec3 pBox = p;
 
-  pBox.xy *= rot2D(gTime);
+  // pBox.xy *= rot2D(gTime);
+  pBox.y -= gTime * 0.4f;
+  pBox = fract(pBox) - 0.5f;
   
-  float box = sdBox(pBox, vec3(0.75f));
+  float box = sdBox(pBox, vec3(0.1f));
 
   float ground = p.y + 0.75;
   
-  return smin(ground, smin(sphere, box, 10.0f), 10.0f);
+  return smin(ground, smin(sphere, box, 10.0f), 5.0f);
 }
 
 void main()
@@ -102,13 +104,7 @@ void main()
   vec3 rd = normalize(vec3(uv*0.5f, 1)); // ray direction, adjusting FOV with miltiplier
   vec3 col = vec3(0.0f);            // pixel color
 
-  // gCamPos.xz *= rot2D(gMouseDelta.x)
-
-  
-  ro.xz += gCamPos.xz;
-  // ro.x += sin(gMouseDelta.x);
-  // ro.z += cos(gMouseDelta.x);
-  ro.y += gCamPos.y;
+  ro += gCamPos;
 
   rd.yz *= rot2D(gMouseDelta.y);
   rd.xz *= rot2D(-gMouseDelta.x);
@@ -128,7 +124,7 @@ void main()
     if(d < 0.001f || t > 100.0f) break;
   }
 
-  col = vec3(t * 0.2f);
+  col = vec3(t * 0.05f);
   
   color = vec4(col, 1.0f);
 }
