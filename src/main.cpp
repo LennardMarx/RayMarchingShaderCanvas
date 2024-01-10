@@ -308,7 +308,7 @@ void Input() {
   }
   // std::cout << "Eye pos: " << u_zPos << ", " << u_xPos << std::endl;
 
-  float speed = 0.1f;
+  float speed = 0.05f;
   const Uint8 *state = SDL_GetKeyboardState(NULL);
   if (state[SDL_SCANCODE_W]) {
     // gCamera.MoveForward(speed);
