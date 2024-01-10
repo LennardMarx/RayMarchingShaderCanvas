@@ -160,7 +160,10 @@ float map(vec3 p){
   // float box3 = rotatingSpine(p, vec2(3.0f, -1.0f), 0.3f, 3.9f);
 
   // box1 = min(box1, min(box2, box3));
-  float box1 = randomSpines(p, 10);
+  // float box1 = randomSpines(p, 10);
+  vec3 q = p;
+  q.x += sin(gTime);
+  float box1 = sdBox(q, vec3(1.0f));
   
   float ground = p.y + 0.75f;
 
