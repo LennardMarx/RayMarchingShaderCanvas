@@ -1,7 +1,7 @@
 #version 410 core
 
 uniform int u_Time;               // Time in ms.
-volatile float gTime = u_Time/1000000.0f;  // Time in s.
+float gTime = u_Time/1000000.0f;  // Time in s.
 
 uniform float u_Resolution[2];
 vec2 gResolution = vec2(u_Resolution[0], u_Resolution[1]);
