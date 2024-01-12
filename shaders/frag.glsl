@@ -1,7 +1,7 @@
 #version 410 core
 
 uniform int u_Time;               // Time in ms.
-float gTime = u_Time/1000000.0f;  // Time in s.
+volatile float gTime = u_Time/1000000.0f;  // Time in s.
 
 uniform float u_Resolution[2];
 vec2 gResolution = vec2(u_Resolution[0], u_Resolution[1]);
@@ -132,8 +132,8 @@ vec3 rot3D(vec3 p, vec3 axis, float angle){
 vec3 palette(float t){
   vec3 a = vec3(0.5f, 0.5f, 0.5f);
   vec3 b = vec3(0.5f, 0.5f, 0.5f);
-  vec3 c = vec3(1.0f, 1.0f, 1.0f);
-  vec3 d = vec3(0.263f, 0.416f, 0.557f);
+  vec3 c = vec3(1.0f, 1.0f, 0.5f);
+  vec3 d = vec3(0.8f, 0.9f, 0.3f);
   return a + b * cos(6.28318f * (c * t + d));
 }
 
@@ -178,19 +178,18 @@ float rotatingSpineQuarter(vec3 p, vec2 pos, float oX, float oZ, float timing){
 
   pBox.xz += pos;
   
-  // pBox.x += oX;
-  // pBox.z += oZ;
-  
   pBox.xz = mod(pBox.xz, 15.0f) - 7.5f;
   
-  pBox.y += 1.5f + (3.0f * sin(1.5f*gTime + timing) - 0.0f);
-  // pBox.x -= oX;
-  // pBox.z -= oZ;
-  pBox.xz *= rot2D(1.5f*pBox.y*sin(1.5f*gTime + timing));
-  pBox.x += oX; //*sin(2.0f*gTime);
-  pBox.z += oZ; //*sin(2.0f*gTime);
-  pBox.x += 0.1f*(pBox.y)*sign(-oX);
-  pBox.z += 0.1f*(pBox.y)*sign(-oZ);
+  pBox.y += 1.7f + (3.0f * sin(1.5f*gTime + timing) - 0.0f);
+  pBox.xz *= rot2D(1.2f*pBox.y*sin(1.5f*gTime + timing));
+  // pBox.xz *= -rot2D(sin(1.5f*gTime + timing));
+  
+  pBox.x += oX;
+  pBox.z += oZ;
+  pBox.xz *= rot2D(1.0f*cos(1.5f*gTime + timing));
+  
+  pBox.x += 0.14f*(pBox.y)*sign(-oX);
+  pBox.z += 0.14f*(pBox.y)*sign(-oZ);
   
   float box = sdBox(pBox, vec3(0.1f, 3.0f, 0.1f));
   return box;
@@ -216,14 +215,14 @@ float randomSpines(vec3 p, int amount){
   float i_float = float(amount);
   vec2 r = vec2(i_float, i_float);
   // vec2 r = vec2(1.0f, 1.0f);
-  float dist = rotatingSpine(p, vec2(rand(r), rand(r)), 0.3f, rand(r));
+  float dist = rotatingSpine(p, vec2(rand(r), rand(r)), 0.4f, rand(r));
   
   for (int i = 0; i < amount-1; i++){
     i_float = float(i);
     float r = rand(vec2(i_float+9.213f, i_float+3.546f))*50.0f;
     float r2 = rand(vec2(i_float+3.387f, i_float+7.189f))*50.0f;
     float r3 = rand(vec2(i_float+3.907f, i_float+7.028f))*50.0f;
-    float dist2 = rotatingSpine(p, vec2(r, r2), 0.3f, r3);
+    float dist2 = rotatingSpine(p, vec2(r, r2), 0.4f, r3);
     dist = min(dist, dist2);
   }
   return dist;
@@ -290,8 +289,10 @@ void main()
     if(d < 0.001f || t > 100.0f) break;
   }
 
-  col = vec3(t * 0.02f + float(i)*0.002f, t*0.05f + float(i)*0.005f, t*0.07f + float(i)*0.007f);
-  // col = palette(t * 0.04f + float(i)*0.005f);
+  // col = vec3(t * 0.02f + float(i)*0.002f, t*0.05f + float(i)*0.005f, t*0.07f + float(i)*0.007f);
+  // col = palette(t * 0.004f + float(i)*0.0005f - 20.0f);
+  col = 0.8f*palette(t*0.005f + 2.0f*3.14f + float(i)*0.003f);
+  if(t>100.0f) col = vec3(0.0f, 0.07f, 0.13f);
   
   color = vec4(col, 1.0f);
 }
