@@ -274,7 +274,10 @@ float map(vec3 p){
   
   q = p;
   q.y -= 3.3f;
+  q.y -= sin(gTime);
+  // q = mod(q, 10) - 5;
   float sphere3 = sdSphere(q, 1.0);
+
 
   sphere1 = min(sphere1, sphere3);
 
@@ -371,16 +374,19 @@ void main()
     t += d;                         // march the ray
 
 
-    if(d < 0.001f || t > 100.0f) break;
+    if(d < 0.001f || t > 200.0f) break;
   }
 
   // col = vec3(t * 0.02f + float(i)*0.002f, t*0.05f + float(i)*0.005f, t*0.07f + float(i)*0.007f);
   // col = vec3(t* 0.04f + float(i)*0.004f);
   // col = palette(t * 0.04f + float(i)*0.005f);
   // col = 0.8f*palette(t*0.001f + 2.0f*3.14f + float(i)*0.01f);
-  col = 1*palette(t*0.01f + 2.0f*3.14f + float(i)*0.001f);
+  // col = 1*palette(t*0.01f + 2.0f*3.14f + float(i)*0.001f);
   // col.xy = vec2(cellular2x2(vec2(1.0f, 2.0f)));
   // col = vec3(t* 0.04f + float(i)*0.004f);
+
+  col = vec3(0.8, 0.5, 0.15);
+  
   vec3 sun = normalize(vec3(-3f, 3.5f, -1f));
   // float sh = shadow(p, sun, 0.02f, 120.5f);
   float sh = softshadow(p, sun, 0.02f, 120.5f, 32);
@@ -391,7 +397,7 @@ void main()
   col *= vec3(1*dot);
   
   
-  if(t>100.0f) col = vec3(0.0f, 0.07f, 0.13f);
+  if(t>200.0f) col = vec3(0.0f, 0.07f, 0.13f);
   color = vec4(col, 1.0f);
 }
 
