@@ -243,6 +243,28 @@ float map(vec3 p){
   float dist = smin(ground, box1, 5.0f);
   return dist;
 }
+float softshadow( in vec3 ro, in vec3 rd, float mint, float maxt, float k )
+{
+    float res = 1.0;
+    float t = mint;
+    for( int i=0; i<256 && t<maxt; i++ )
+    {
+        float h = map(ro + rd*t);
+        if( h<0.001 )
+            return 0.0;
+        res = min( res, k*h/t );
+        t += h;
+    }
+    return res;
+}
+vec3 calcNormal( in vec3 p ) // for function f(p)
+{
+    const float eps = 0.0001; // or some other value
+    const vec2 h = vec2(eps,0);
+    return normalize( vec3(map(p+h.xyy) - map(p-h.xyy),
+                           map(p+h.yxy) - map(p-h.yxy),
+                           map(p+h.yyx) - map(p-h.yyx) ) );
+}
 void main()
 {
   // Correcting for the ascpect ratio;
@@ -261,8 +283,9 @@ void main()
 
   // Raymarching
   int i;
+  vec3 p;
   for(i = 0; i < 80; i++){
-    vec3 p = ro + rd * t;           // position along the ray 
+    p = ro + rd * t;           // position along the ray 
     
     // p.xy *= rot2D(0.01f*gTime + 0.001f*sin(gTime) + t*0.02f + t*0.005f*sin(0.5f*gTime)); // Const Rotation, changing rotation speed, constant twist, changing twist amount
     // p.xy *= rot2D(t*0.02f*sin(gTime + 10.0f) + 0.01f*sin(gTime));
@@ -292,6 +315,17 @@ void main()
   // col = vec3(t * 0.02f + float(i)*0.002f, t*0.05f + float(i)*0.005f, t*0.07f + float(i)*0.007f);
   // col = palette(t * 0.004f + float(i)*0.0005f - 20.0f);
   col = 0.8f*palette(t*0.005f + 2.0f*3.14f + float(i)*0.003f);
+
+  // vec3 sun = normalize(vec3(-3f, 3.5f, -1f));
+  // // float sh = shadow(p, sun, 0.02f, 120.5f);
+  // float sh = softshadow(p, sun, 0.02f, 120.5f, 32);
+  // vec3 norm = calcNormal(p);
+  // float dot = dot(norm, sun);
+  // // float sh = shadow(ro, rd, 0.02f, 2.5f);
+  // col *= vec3(1*sh);
+  // col *= vec3(1*dot);
+
+  
   if(t>100.0f) col = vec3(0.0f, 0.07f, 0.13f);
   
   color = vec4(col, 1.0f);
