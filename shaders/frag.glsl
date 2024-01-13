@@ -181,7 +181,11 @@ float sdOctahedron( vec3 p, float s)
   p = abs(p);
   return (p.x+p.y+p.z-s)*0.57735027;
 }
-
+float sdPlane( vec3 p, vec3 n, float h )
+{
+  // n must be normalized
+  return dot(p,n) + h;
+}
 float smin( float a, float b, float k )
 {
     float res = exp2( -k*a ) + exp2( -k*b );
@@ -242,6 +246,34 @@ float sdCutHollowSphere( vec3 p, float r, float h, float t )
 //   return smin(ground, smin(sphere, box, 10.0f), 5.0f);
 // }
 
+float createGround(vec3 p){
+  
+  float ground = p.y + 0.75f;
+
+  vec3 q = p;
+  q.xz *= rot2D(45);
+  float n1 = 10*snoise(0.01*q.xz);
+
+  q = p;
+  q.xz *= rot2D(33);
+  float n2 = 1*snoise(0.05*q.xz);
+  
+  q = p;
+  q.xz *= rot2D(67);
+  float n3 = 0.1*snoise(0.1*q.xz);
+  
+  q = p;
+  q.xz *= rot2D(12);
+  float n4 = 0.05*snoise(0.2*q.xz);
+  
+  q = p;
+  q.xz *= rot2D(189);
+  float n5 = 0.02*snoise(0.4*q.xz);
+  
+  ground +=  n1 + n2 + n3 + n4 + n5;
+  return ground;
+}
+
 float map(vec3 p){
   
   vec3 q = p;
@@ -253,52 +285,24 @@ float map(vec3 p){
   // float box2 = sdBox(q, vec3(9.0f));
   //
   // box1 = max(box1, -box2);
-  float box1 = sdBoxFrame(q, vec3(10.0f), 1.0f);
-
-  // q = p;
-  // q.z += 9.0f;
-  // q.y += 1.0f;
-  // float box3 = sdBox(q, vec3(2.0f));
-  // 
-  // box1 = min(box1, box3);
-
-  q = p;
-  // q.x += 1.0f;
-  float sphere1 = sdSphere(q,1.1f);
-
-  q = p;
-  q.y -= 0.3f;
-  float sphere2 = sdSphere(q, 1.2f);
-
-  sphere1 = max(sphere1, -sphere2);
   
+
+  // q.x += 20;
+  // q.y -= 10;
+  // q.z += 10;
+  q += vec3(20, -10, 10);
+  float boxFrame = sdBoxFrame(q, vec3(10), 1);
+
   q = p;
-  q.y -= 3.3f;
-  q.y -= sin(gTime);
-  // q = mod(q, 10) - 5;
-  float sphere3 = sdSphere(q, 1.0);
+  q += vec3(20, -20, 10);
+  q.y += 2*sin(gTime);
+  float sphere = sdSphere(q, 3);
 
-
-  sphere1 = min(sphere1, sphere3);
-
-  box1 = min(sphere1, box1);
-
-  // q=p;
-  // q -= vec3(10, 30, 10);
-  // float sphere3 = sdSphere(q, 0.5f);
-  //
-  // box1 = min(box1, sphere3);
-  // 
-  // q=p;
-  // q -= vec3(10, 30, 10);
-  // q += normalize(vec3(-1, -1, -0.5f));
-  // float sphere4 = sdSphere(q, 0.3f);
-  //
-  // box1 = min(box1, sphere4); 
+  float stuff = min(boxFrame, sphere);
   
-  float ground = p.y + 0.75f;
+  float ground = createGround(p);
 
-  float dist = smin(ground, box1, 5.0f);
+  float dist = smin(ground, stuff, 2);
   return dist;
 }
 float shadow(in vec3 ro, in vec3 rd, float mint, float maxt)
@@ -340,7 +344,7 @@ void main()
   // Correcting for the ascpect ratio;
   vec2 uv = (v_vertexPositions.xy * 2.0f * gResolution) / gResolution.y;
 
-  vec3 ro = vec3(0, 0, -20);         // ray origin
+  vec3 ro = vec3(0, 30, -20);         // ray origin
   vec3 rd = normalize(vec3(uv*0.5f, 1)); // ray direction, adjusting FOV with miltiplier
   vec3 col = vec3(0.0f);            // pixel color
 
@@ -358,7 +362,7 @@ void main()
 
     p = ro + rd * t;           // position along the ray 
     // p.y -= p.x*p.x * 0.02f;
-    p.y -= 0.000001f*gTime*snoise(0.1f*p.xz);
+    // p.y -= 0.000001f*gTime*snoise(0.1f*p.xz);
     //
     // p.y -= sin(gTime)*5.0f*snoise(0.01f*p.xz);
     // p.y -= sin(gTime + 10.0f)*5.0f*snoise(0.01f*p.xz);
@@ -374,7 +378,7 @@ void main()
     t += d;                         // march the ray
 
 
-    if(d < 0.001f || t > 200.0f) break;
+    if(d < 0.001f || t > 300.0f) break;
   }
 
   // col = vec3(t * 0.02f + float(i)*0.002f, t*0.05f + float(i)*0.005f, t*0.07f + float(i)*0.007f);
@@ -387,17 +391,18 @@ void main()
 
   col = vec3(0.8, 0.5, 0.15);
   
-  vec3 sun = normalize(vec3(-3f, 3.5f, -1f));
-  // float sh = shadow(p, sun, 0.02f, 120.5f);
-  float sh = softshadow(p, sun, 0.02f, 120.5f, 32);
+  vec3 sun = normalize(vec3(1, 1.5, -2));
+  // sun.yz *= rot2D(1*gTime);
+  // float sh = shadow(p, sun, 0.02f, 50.5f);
+  float sh = softshadow(p, sun, 1, 100, 64);
   vec3 norm = calcNormal(p);
   float dot = dot(norm, sun);
   // float sh = shadow(ro, rd, 0.02f, 2.5f);
-  col *= vec3(1*sh);
   col *= vec3(1*dot);
+  col *= vec3(1*sh);
   
   
-  if(t>200.0f) col = vec3(0.0f, 0.07f, 0.13f);
+  if(t>300.0f) col = vec3(0.0f, 0.07f, 0.13f);
   color = vec4(col, 1.0f);
 }
 
