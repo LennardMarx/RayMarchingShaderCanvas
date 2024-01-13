@@ -186,10 +186,15 @@ float sdPlane( vec3 p, vec3 n, float h )
   // n must be normalized
   return dot(p,n) + h;
 }
-float smin( float a, float b, float k )
-{
-    float res = exp2( -k*a ) + exp2( -k*b );
-    return -log2( res )/k;
+// float smin( float a, float b, float k )
+// {
+//     float res = exp2( -k*a ) + exp2( -k*b );
+//     return -log2( res )/k;
+// }
+// Polynomial smooth minimum by iq
+float smin(float a, float b, float k) {
+  float h = clamp(0.5 + 0.5*(a-b)/k, 0.0, 1.0);
+  return mix(a, b, h) - k*h*(1.0-h);
 }
 
 mat2 rot2D(float angle){
@@ -248,7 +253,8 @@ float sdCutHollowSphere( vec3 p, float r, float h, float t )
 
 float createGround(vec3 p){
   
-  float ground = p.y + 0.75f;
+  // float ground = p.y + 0.75f;
+  float ground;
 
   vec3 q = p;
   q.xz *= rot2D(45);
@@ -270,11 +276,11 @@ float createGround(vec3 p){
   q.xz *= rot2D(189);
   float n5 = 0.02*snoise(0.4*q.xz);
   
-  ground +=  n1 + n2 + n3 + n4 + n5;
+  ground =  n1 + n2 + n3 + n4 + n5;
   return ground;
 }
 
-float map(vec3 p){
+vec4 map(vec3 p){
   
   vec3 q = p;
   // // q.x += sin(gTime);
@@ -286,10 +292,6 @@ float map(vec3 p){
   //
   // box1 = max(box1, -box2);
   
-
-  // q.x += 20;
-  // q.y -= 10;
-  // q.z += 10;
   q += vec3(20, -10, 10);
   float boxFrame = sdBoxFrame(q, vec3(10), 1);
 
@@ -300,20 +302,27 @@ float map(vec3 p){
 
   float stuff = min(boxFrame, sphere);
   
-  float ground = createGround(p);
+  // float ground = createGround(p);
+  q = p;
+  float ground = sdPlane(q, normalize(vec3(0, 1, 0)), 0);
+  
+  q = p;
+  ground += createGround(p);
 
-  float dist = smin(ground, stuff, 2);
-  return dist;
+  float dist = smin(ground, stuff, 0);
+  vec4 end = vec4(0.0, 1.0, 1.0, dist);
+  return end;
 }
 float shadow(in vec3 ro, in vec3 rd, float mint, float maxt)
 {
     float t = mint;
     for( int i=0; i<256 && t<maxt; i++ )
     {
-        float h = map(ro + rd*t);
-        if( h<0.001 )
+        // float h = map(ro + rd*t);
+        vec4 h = map(ro + rd*t);
+        if( h.w<0.001 )
             return 0.0;
-        t += h;
+        t += h.w;
     }
     return 1.0;
 }
@@ -323,11 +332,12 @@ float softshadow( in vec3 ro, in vec3 rd, float mint, float maxt, float k )
     float t = mint;
     for( int i=0; i<256 && t<maxt; i++ )
     {
-        float h = map(ro + rd*t);
-        if( h<0.001 )
+        // float h = map(ro + rd*t);
+        vec4 h = map(ro + rd*t);
+        if( h.w<0.001 )
             return 0.0;
-        res = min( res, k*h/t );
-        t += h;
+        res = min( res, k*h.w/t );
+        t += h.w;
     }
     return res;
 }
@@ -335,9 +345,9 @@ vec3 calcNormal( in vec3 p ) // for function f(p)
 {
     const float eps = 0.0001; // or some other value
     const vec2 h = vec2(eps,0);
-    return normalize( vec3(map(p+h.xyy) - map(p-h.xyy),
-                           map(p+h.yxy) - map(p-h.yxy),
-                           map(p+h.yyx) - map(p-h.yyx) ) );
+    return normalize( vec3(map(p+h.xyy).w - map(p-h.xyy).w,
+                           map(p+h.yxy).w - map(p-h.yxy).w,
+                           map(p+h.yyx).w - map(p-h.yyx).w ) );
 }
 void main()
 {
@@ -358,38 +368,37 @@ void main()
   // Raymarching
   int i;
   vec3 p;
+  vec4 d;
   for(i = 0; i < 80; i++){
 
     p = ro + rd * t;           // position along the ray 
-    // p.y -= p.x*p.x * 0.02f;
     // p.y -= 0.000001f*gTime*snoise(0.1f*p.xz);
-    //
-    // p.y -= sin(gTime)*5.0f*snoise(0.01f*p.xz);
-    // p.y -= sin(gTime + 10.0f)*5.0f*snoise(0.01f*p.xz);
-    // p.y -= cos(gTime)*5.0f*snoise(0.01f*p.xz);
-    // p.y -= 100.0f*snoise(0.001f*p.xz);
-
-    // p.xz += cellular2x2(vec2(1.0f, 2.0f));
     
     
-    float d = map(p);               // current distance to the scene
+    // float d = map(p);               // current distance to the scene
+    d = map(p);               // current distance to the scene
 
+  
     
-    t += d;                         // march the ray
+    t += d.w;                         // march the ray
 
 
-    if(d < 0.001f || t > 300.0f) break;
+    if(d.w < 0.001f || t > 1000.0f) break;
   }
-
-  // col = vec3(t * 0.02f + float(i)*0.002f, t*0.05f + float(i)*0.005f, t*0.07f + float(i)*0.007f);
-  // col = vec3(t* 0.04f + float(i)*0.004f);
-  // col = palette(t * 0.04f + float(i)*0.005f);
-  // col = 0.8f*palette(t*0.001f + 2.0f*3.14f + float(i)*0.01f);
-  // col = 1*palette(t*0.01f + 2.0f*3.14f + float(i)*0.001f);
-  // col.xy = vec2(cellular2x2(vec2(1.0f, 2.0f)));
-  // col = vec3(t* 0.04f + float(i)*0.004f);
-
+  // col = d.xyz;
   col = vec3(0.8, 0.5, 0.15);
+
+  vec3 q = p;
+  q += vec3(20, -20, 10);
+  q.y += 2*sin(gTime);
+  float sphere = sdSphere(q, 3);
+  if (d.w + 0.001 > sphere) col = vec3(0.2, 0.5, 0.6);
+
+  q = p;
+  q += vec3(20, -10, 10);
+  float boxFrame = sdBoxFrame(q, vec3(10), 1);
+  if (d.w + 0.001 > boxFrame) col = vec3(0.2, 0.5, 0.6);
+
   
   vec3 sun = normalize(vec3(1, 1.5, -2));
   // sun.yz *= rot2D(1*gTime);
@@ -402,7 +411,7 @@ void main()
   col *= vec3(1*sh);
   
   
-  if(t>300.0f) col = vec3(0.0f, 0.07f, 0.13f);
+  if(t>1000.0f) col = vec3(0.0f, 0.07f, 0.13f);
   color = vec4(col, 1.0f);
 }
 
