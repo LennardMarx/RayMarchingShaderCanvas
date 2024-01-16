@@ -257,6 +257,10 @@ float createGround(vec3 p){
   float ground;
 
   vec3 q = p;
+  q.xz *= rot2D(277);
+  float n0 = 70*snoise(0.001*q.xz);
+
+  q = p;
   q.xz *= rot2D(45);
   float n1 = 10*snoise(0.01*q.xz);
 
@@ -275,11 +279,16 @@ float createGround(vec3 p){
   q = p;
   q.xz *= rot2D(189);
   float n5 = 0.02*snoise(0.4*q.xz);
+
+  q = p;
+  q.xz *= rot2D(46);
+  float n6 = 0.02*snoise(0.6*q.xz);
   
-  ground =  n1 + n2 + n3 + n4 + n5;
+  ground = n0 + n1 + n2 + n3 + n4 + n5 + n6;
   return ground;
 }
 
+// When changing back to float -> change also in dependend functions (shadow...)
 vec4 map(vec3 p){
   
   vec3 q = p;
@@ -292,12 +301,12 @@ vec4 map(vec3 p){
   //
   // box1 = max(box1, -box2);
   
-  q += vec3(20, -10, 10);
+  q += vec3(20, -30, 35);
   float boxFrame = sdBoxFrame(q, vec3(10), 1);
 
   q = p;
-  q += vec3(20, -20, 10);
-  q.y += 2*sin(gTime);
+  q += vec3(20, -40, 35);
+  q.y += 5*sin(2*gTime);
   float sphere = sdSphere(q, 3);
 
   float stuff = min(boxFrame, sphere);
@@ -388,28 +397,45 @@ void main()
   // col = d.xyz;
   col = vec3(0.8, 0.5, 0.15);
 
-  vec3 q = p;
-  q += vec3(20, -20, 10);
-  q.y += 2*sin(gTime);
-  float sphere = sdSphere(q, 3);
-  if (d.w + 0.001 > sphere) col = vec3(0.2, 0.5, 0.6);
-
-  q = p;
-  q += vec3(20, -10, 10);
-  float boxFrame = sdBoxFrame(q, vec3(10), 1);
-  if (d.w + 0.001 > boxFrame) col = vec3(0.2, 0.5, 0.6);
+  // Check objects again to give them separate color.
+  // TODO: Should reuse the initially calculated SDFs.
 
   
   vec3 sun = normalize(vec3(1, 1.5, -2));
   // sun.yz *= rot2D(1*gTime);
   // float sh = shadow(p, sun, 0.02f, 50.5f);
-  float sh = softshadow(p, sun, 1, 100, 64);
+  float sh = max(0.0, softshadow(p, sun, 1, 100, 64));
   vec3 norm = calcNormal(p);
-  float dot = dot(norm, sun);
+  float diffuse = max(0.0, dot(norm, sun));
   // float sh = shadow(ro, rd, 0.02f, 2.5f);
-  col *= vec3(1*dot);
-  col *= vec3(1*sh);
+  vec3 reflection = normalize(reflect(sun, norm));
+  float specular = max(0.0, dot(rd, reflection));
   
+
+  vec3 q = p;
+  q += vec3(20, -40, 35);
+  q.y += 5*sin(2*gTime);
+  float sphere = sdSphere(q, 3);
+  if (d.w + 0.00001 > sphere){
+    specular = pow(specular, 64.0); // shininess
+    col = vec3(0.2, 0.5, 0.6);
+    col += vec3(0.5*specular);
+  } 
+
+  q = p;
+  q += vec3(20, -30, 35);
+  float boxFrame = sdBoxFrame(q, vec3(10), 1);
+  if (d.w + 0.00001 > boxFrame) {
+    specular = pow(specular, 16.0); // shininess
+    col = vec3(0.7, 0.5, 0.3); 
+    col += vec3(0.5*specular);
+  }
+
+
+  
+  col *= vec3(1*diffuse);
+  col *= vec3(1*sh);
+  // col += vec3(0.7*specular);
   
   if(t>1000.0f) col = vec3(0.0f, 0.07f, 0.13f);
   color = vec4(col, 1.0f);
