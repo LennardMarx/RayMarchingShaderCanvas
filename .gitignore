@@ -1,4 +1,4 @@
-include/KHR/
-include/glad/
-include/glm/
-.vscode/
+# include/KHR/
+# include/glad/
+# include/glm/
+# .vscode/
