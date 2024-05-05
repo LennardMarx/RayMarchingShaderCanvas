@@ -342,6 +342,10 @@ void Input() {
     // gCamera.MoveDown(speed);
     u_yPos -= speed;
   }
+  if (state[SDL_SCANCODE_ESCAPE]) {
+    // gCamera.MoveDown(speed);
+    gQuit = true;
+  }
 }
 
 void PreDraw() {
